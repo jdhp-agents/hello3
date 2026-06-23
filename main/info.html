@@ -15,8 +15,61 @@
     <link href="css/styles.css" rel="stylesheet">
 </head>
 <body>
-    <main class="container">
-        <div id="info"></div>
+    <main class="container pb-5">
+
+        <div class="row mt-4 mb-4 align-items-center">
+            <div class="col">
+                <h1 class="h3 fw-bold mb-0">Client Directory</h1>
+                <p class="text-muted small mb-0">Demo data — Hello3 Application Template</p>
+            </div>
+            <div class="col-auto d-flex gap-2">
+                <input type="text" id="search-input" class="form-control form-control-sm" placeholder="Search…" style="width:200px">
+                <select id="status-filter" class="form-select form-select-sm" style="width:140px">
+                    <option value="">All statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Trial">Trial</option>
+                    <option value="Churned">Churned</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="clients-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="sortable ps-3" data-col="company">Company <i class="bi bi-chevron-expand text-muted small"></i></th>
+                                <th class="sortable" data-col="contact">Contact <i class="bi bi-chevron-expand text-muted small"></i></th>
+                                <th class="sortable" data-col="plan">Plan <i class="bi bi-chevron-expand text-muted small"></i></th>
+                                <th class="sortable text-end" data-col="mrr">MRR <i class="bi bi-chevron-expand text-muted small"></i></th>
+                                <th class="sortable" data-col="since">Since <i class="bi bi-chevron-expand text-muted small"></i></th>
+                                <th class="sortable" data-col="status">Status <i class="bi bi-chevron-expand text-muted small"></i></th>
+                                <th class="sortable text-end pe-3" data-col="nps">NPS <i class="bi bi-chevron-expand text-muted small"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="clients-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center text-muted small py-2 px-3">
+                <span id="row-count"></span>
+                <span>Sorted by MRR desc by default</span>
+            </div>
+        </div>
+
+        <!-- System info (kept, collapsed by default) -->
+        <div class="mt-4">
+            <a class="text-muted small text-decoration-none" data-bs-toggle="collapse" href="#system-info-panel">
+                <i class="bi bi-cpu me-1"></i>System info
+            </a>
+            <div class="collapse mt-2" id="system-info-panel">
+                <div class="card card-body bg-light">
+                    <pre id="info" class="mb-0 small"></pre>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Bootstrap JS and dependencies -->
@@ -26,32 +79,99 @@
     <script src="js/navbar.js"></script>
 
     <script>
+        // ── Demo data ────────────────────────────────────────────────────────────
+        const CLIENTS = [
+            { company: "Nexora Systems",    contact: "Sophie Marchand",  plan: "Enterprise", mrr: 4800, since: "2021-03", status: "Active",  nps: 9 },
+            { company: "Bluewave Analytics",contact: "Thomas Renard",    plan: "Pro",        mrr: 1200, since: "2022-07", status: "Active",  nps: 8 },
+            { company: "Helix Corp",        contact: "Amira Boussaad",   plan: "Enterprise", mrr: 6200, since: "2020-11", status: "Active",  nps: 10 },
+            { company: "Lumina Studio",     contact: "Kevin Lefort",     plan: "Starter",    mrr:  290, since: "2024-01", status: "Trial",   nps: 7 },
+            { company: "Orion Logistics",   contact: "Claire Dupont",    plan: "Pro",        mrr: 1800, since: "2022-04", status: "Active",  nps: 8 },
+            { company: "Vertiq SAS",        contact: "Marc Thiébaut",    plan: "Enterprise", mrr: 5400, since: "2021-09", status: "Active",  nps: 9 },
+            { company: "DataSpark",         contact: "Inès Moreau",      plan: "Pro",        mrr:  950, since: "2023-06", status: "Active",  nps: 6 },
+            { company: "CloudPetal",        contact: "Romain Becker",    plan: "Starter",    mrr:  290, since: "2024-03", status: "Trial",   nps: 7 },
+            { company: "Arctiq Conseil",    contact: "Nadia Fontaine",   plan: "Pro",        mrr: 1200, since: "2022-12", status: "Churned", nps: 4 },
+            { company: "Stratum Technologies", contact: "Julien Vidal",  plan: "Enterprise", mrr: 3900, since: "2021-05", status: "Active",  nps: 9 },
+            { company: "Mosaic Digital",    contact: "Laura Petit",      plan: "Pro",        mrr: 1100, since: "2023-02", status: "Active",  nps: 7 },
+            { company: "Fenix Labs",        contact: "Antoine Garnier",  plan: "Starter",    mrr:  290, since: "2023-11", status: "Trial",   nps: 8 },
+            { company: "Kova Solutions",    contact: "Marie-Claire Roy", plan: "Enterprise", mrr: 7100, since: "2020-06", status: "Active",  nps: 10 },
+            { company: "PulseTech",         contact: "Sébastien Noir",   plan: "Pro",        mrr: 1600, since: "2022-09", status: "Active",  nps: 8 },
+            { company: "Aelios Group",      contact: "Charlotte Simon",  plan: "Enterprise", mrr: 4100, since: "2021-01", status: "Churned", nps: 3 },
+        ];
+
+        const PLAN_COLORS  = { Enterprise: "primary", Pro: "info", Starter: "secondary" };
+        const STATUS_COLORS = { Active: "success", Trial: "warning", Churned: "danger" };
+
+        // ── State ────────────────────────────────────────────────────────────────
+        let sortCol = "mrr", sortDir = -1;
+        let searchQ = "", statusQ = "";
+
+        // ── Render ───────────────────────────────────────────────────────────────
+        function renderTable() {
+            let rows = CLIENTS.filter(c => {
+                const q = searchQ.toLowerCase();
+                const matchSearch = !q || c.company.toLowerCase().includes(q) || c.contact.toLowerCase().includes(q);
+                const matchStatus = !statusQ || c.status === statusQ;
+                return matchSearch && matchStatus;
+            });
+
+            rows.sort((a, b) => {
+                const av = a[sortCol], bv = b[sortCol];
+                return typeof av === "number" ? (av - bv) * sortDir : av.localeCompare(bv) * sortDir;
+            });
+
+            const stars = n => "★".repeat(n) + "☆".repeat(10 - n);
+
+            const tbody = document.getElementById("clients-tbody");
+            tbody.innerHTML = rows.map(c => `
+                <tr>
+                    <td class="ps-3 fw-semibold">${c.company}</td>
+                    <td class="text-muted">${c.contact}</td>
+                    <td><span class="badge text-bg-${PLAN_COLORS[c.plan]}">${c.plan}</span></td>
+                    <td class="text-end fw-semibold">€${c.mrr.toLocaleString()}</td>
+                    <td class="text-muted">${c.since}</td>
+                    <td><span class="badge text-bg-${STATUS_COLORS[c.status]}">${c.status}</span></td>
+                    <td class="text-end pe-3">
+                        <span class="text-warning" title="${c.nps}/10" style="letter-spacing:1px;font-size:.8rem">${stars(c.nps)}</span>
+                        <span class="text-muted small ms-1">${c.nps}</span>
+                    </td>
+                </tr>`).join("");
+
+            document.getElementById("row-count").textContent = `${rows.length} client${rows.length !== 1 ? "s" : ""}`;
+        }
+
+        // ── Sort ─────────────────────────────────────────────────────────────────
+        document.querySelectorAll(".sortable").forEach(th => {
+            th.style.cursor = "pointer";
+            th.addEventListener("click", () => {
+                const col = th.dataset.col;
+                sortDir = col === sortCol ? -sortDir : -1;
+                sortCol = col;
+                renderTable();
+            });
+        });
+
+        // ── Filters ──────────────────────────────────────────────────────────────
+        document.getElementById("search-input").addEventListener("input", e => {
+            searchQ = e.target.value;
+            renderTable();
+        });
+        document.getElementById("status-filter").addEventListener("change", e => {
+            statusQ = e.target.value;
+            renderTable();
+        });
+
+        // ── System info (existing fetch, kept for compatibility) ─────────────────
         async function fetchInfo() {
             try {
-                const response = await fetch('api/info', {
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
-                }
+                const response = await fetch('api/info', { headers: { 'Accept': 'application/json' } });
+                if (!response.ok) return;
                 const msg = await response.json();
-                displayInfo(msg);
-            } catch (error) {
-                console.error('There has been a problem with your fetch operation:', error);
-            }
+                document.getElementById('info').textContent = Object.entries(msg)
+                    .map(([k, v]) => `${k} : ${v}`).join('\n');
+            } catch (_) {}
         }
 
-        function displayInfo(msg) {
-            const elem = document.getElementById('info');
-            // Format the dictionary as "key : value" lines
-            elem.textContent = Object.entries(msg)
-                .map(([key, value]) => `${key} : ${value}`)
-                .join('\n');
-        }
-
-        // Fetch and display info when the page loads
+        renderTable();
         window.onload = fetchInfo;
     </script>
 </body>

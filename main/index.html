@@ -9,20 +9,321 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">  <!-- See https://icons.getbootstrap.com/#install -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
-    <!-- Custom CSS -->
-    <link href="css/styles.css" rel="stylesheet">
+    <style>
+        .kpi-card {
+            border-left: 4px solid;
+            transition: transform 0.15s ease;
+        }
+        .kpi-card:hover { transform: translateY(-2px); }
+        .kpi-card.revenue  { border-color: #0d6efd; }
+        .kpi-card.users    { border-color: #198754; }
+        .kpi-card.orders   { border-color: #fd7e14; }
+        .kpi-card.nps      { border-color: #6f42c1; }
+        .kpi-value { font-size: 2rem; font-weight: 700; line-height: 1.1; }
+        .kpi-delta { font-size: 0.82rem; }
+        .chart-card { min-height: 300px; }
+        #chart-revenue svg,
+        #chart-category svg,
+        #chart-scatter svg { width: 100%; height: auto; display: block; }
+        .filter-btn.active { font-weight: 600; }
+    </style>
 </head>
 <body>
-    <main class="container">
-        Main page content goes here.
+    <main class="container-fluid px-4 pb-5">
+
+        <!-- Hero -->
+        <div class="row mt-4 mb-3 align-items-center">
+            <div class="col">
+                <h1 class="h3 mb-0 fw-bold">Analytics Dashboard</h1>
+                <p class="text-muted mb-0 small">Interactive demo — Hello3 Application Template</p>
+            </div>
+            <div class="col-auto d-flex gap-2" id="period-filters">
+                <button class="btn btn-sm btn-outline-primary filter-btn active" data-period="12">12 months</button>
+                <button class="btn btn-sm btn-outline-primary filter-btn" data-period="6">6 months</button>
+                <button class="btn btn-sm btn-outline-primary filter-btn" data-period="3">3 months</button>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="row g-3 mb-4" id="kpi-row">
+            <div class="col-6 col-md-3">
+                <div class="card kpi-card revenue h-100 shadow-sm">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1"><i class="bi bi-currency-euro me-1"></i>Revenue</p>
+                        <div class="kpi-value text-primary" id="kpi-revenue">—</div>
+                        <span class="kpi-delta" id="kpi-revenue-delta"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card kpi-card users h-100 shadow-sm">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1"><i class="bi bi-people me-1"></i>Active Users</p>
+                        <div class="kpi-value text-success" id="kpi-users">—</div>
+                        <span class="kpi-delta" id="kpi-users-delta"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card kpi-card orders h-100 shadow-sm">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1"><i class="bi bi-bag me-1"></i>Orders</p>
+                        <div class="kpi-value text-warning" id="kpi-orders">—</div>
+                        <span class="kpi-delta" id="kpi-orders-delta"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card kpi-card nps h-100 shadow-sm">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1"><i class="bi bi-star me-1"></i>NPS Score</p>
+                        <div class="kpi-value text-purple" style="color:#6f42c1" id="kpi-nps">—</div>
+                        <span class="kpi-delta" id="kpi-nps-delta"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts row 1 -->
+        <div class="row g-3 mb-3">
+            <div class="col-lg-8">
+                <div class="card shadow-sm chart-card">
+                    <div class="card-body">
+                        <h6 class="card-title fw-semibold mb-3">Monthly Revenue &amp; Orders</h6>
+                        <div id="chart-revenue"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card shadow-sm chart-card">
+                    <div class="card-body">
+                        <h6 class="card-title fw-semibold mb-3">Revenue by Category</h6>
+                        <div id="chart-category"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts row 2 -->
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="card shadow-sm chart-card">
+                    <div class="card-body">
+                        <h6 class="card-title fw-semibold mb-3">Users vs Conversion Rate</h6>
+                        <div id="chart-scatter"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h6 class="card-title fw-semibold mb-3">Top Products</h6>
+                        <div id="table-products"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
-    <!-- Bootstrap JS and dependencies -->
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <!-- Observable Plot -->
+    <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/dist/plot.umd.min.js"></script>
 
     <!-- Components -->
     <script src="js/navbar.js"></script>
+
+    <script>
+    // ── Demo data ──────────────────────────────────────────────────────────────
+
+    const ALL_MONTHS = [
+        { date: new Date("2024-01-01"), revenue: 41200, orders: 312, users: 2840, conv: 4.1 },
+        { date: new Date("2024-02-01"), revenue: 38900, orders: 290, users: 2920, conv: 3.9 },
+        { date: new Date("2024-03-01"), revenue: 45600, orders: 348, users: 3150, conv: 4.4 },
+        { date: new Date("2024-04-01"), revenue: 49300, orders: 371, users: 3280, conv: 4.6 },
+        { date: new Date("2024-05-01"), revenue: 52100, orders: 395, users: 3410, conv: 4.7 },
+        { date: new Date("2024-06-01"), revenue: 47800, orders: 362, users: 3520, conv: 4.5 },
+        { date: new Date("2024-07-01"), revenue: 51400, orders: 389, users: 3660, conv: 4.8 },
+        { date: new Date("2024-08-01"), revenue: 55200, orders: 418, users: 3790, conv: 5.0 },
+        { date: new Date("2024-09-01"), revenue: 59800, orders: 452, users: 3950, conv: 5.2 },
+        { date: new Date("2024-10-01"), revenue: 63400, orders: 480, users: 4100, conv: 5.4 },
+        { date: new Date("2024-11-01"), revenue: 71200, orders: 539, users: 4310, conv: 5.6 },
+        { date: new Date("2024-12-01"), revenue: 82500, orders: 624, users: 4580, conv: 5.9 },
+    ];
+
+    const CATEGORIES = [
+        { category: "SaaS",        revenue: 198400 },
+        { category: "Consulting",  revenue: 134700 },
+        { category: "Training",    revenue: 87600  },
+        { category: "Support",     revenue: 56300  },
+        { category: "Licences",    revenue: 41400  },
+    ];
+
+    const PRODUCTS = [
+        { name: "Pro Plan",      revenue: 142300, growth: 18, status: "up"   },
+        { name: "Enterprise",    revenue: 98700,  growth: 32, status: "up"   },
+        { name: "Starter Pack",  revenue: 67400,  growth: -4, status: "down" },
+        { name: "API Access",    revenue: 54200,  growth: 11, status: "up"   },
+        { name: "On-site Training", revenue: 34800, growth: 7, status: "up"  },
+    ];
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    function fmt(n) {
+        return n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k" : String(n);
+    }
+
+    function deltaHtml(pct, unit = "%") {
+        const up = pct >= 0;
+        return `<span class="badge ${up ? "text-bg-success" : "text-bg-danger"}">
+            <i class="bi bi-arrow-${up ? "up" : "down"}-short"></i>${Math.abs(pct)}${unit}
+        </span> <span class="text-muted">vs prev. period</span>`;
+    }
+
+    // ── KPIs ───────────────────────────────────────────────────────────────────
+
+    function updateKPIs(months) {
+        const n = months.length;
+        const half = Math.floor(n / 2);
+        const cur  = months.slice(n - half);
+        const prev = months.slice(0, half);
+
+        const sum  = (arr, k) => arr.reduce((s, d) => s + d[k], 0);
+        const last = arr => arr[arr.length - 1];
+
+        const rev  = sum(cur, "revenue"),  prevRev  = sum(prev, "revenue");
+        const ord  = sum(cur, "orders"),   prevOrd  = sum(prev, "orders");
+        const usr  = last(cur).users,      prevUsr  = last(prev).users;
+        const nps  = 62;
+
+        document.getElementById("kpi-revenue").textContent = "€" + fmt(rev);
+        document.getElementById("kpi-users").textContent   = fmt(usr);
+        document.getElementById("kpi-orders").textContent  = fmt(ord);
+        document.getElementById("kpi-nps").textContent     = nps;
+
+        const pctRev = Math.round((rev - prevRev) / prevRev * 100);
+        const pctOrd = Math.round((ord - prevOrd) / prevOrd * 100);
+        const pctUsr = Math.round((usr - prevUsr) / prevUsr * 100);
+
+        document.getElementById("kpi-revenue-delta").innerHTML = deltaHtml(pctRev);
+        document.getElementById("kpi-orders-delta").innerHTML  = deltaHtml(pctOrd);
+        document.getElementById("kpi-users-delta").innerHTML   = deltaHtml(pctUsr);
+        document.getElementById("kpi-nps-delta").innerHTML     = deltaHtml(+4);
+    }
+
+    // ── Charts ─────────────────────────────────────────────────────────────────
+
+    function renderRevenue(months) {
+        const el = document.getElementById("chart-revenue");
+        el.innerHTML = "";
+        const chart = Plot.plot({
+            marginLeft: 52, marginRight: 16, marginBottom: 36, height: 260,
+            x: { type: "time", label: null, tickFormat: "%b %Y" },
+            y: { label: "Revenue (€)", grid: true },
+            marks: [
+                Plot.areaY(months, { x: "date", y: "revenue", fill: "#0d6efd", fillOpacity: 0.12 }),
+                Plot.lineY(months, { x: "date", y: "revenue", stroke: "#0d6efd", strokeWidth: 2.5,
+                    tip: { format: { y: d => "€" + d.toLocaleString() } } }),
+                Plot.dot(months, { x: "date", y: "revenue", fill: "#0d6efd", r: 3 }),
+            ]
+        });
+        el.appendChild(chart);
+    }
+
+    function renderCategory() {
+        const el = document.getElementById("chart-category");
+        el.innerHTML = "";
+        const sorted = [...CATEGORIES].sort((a, b) => b.revenue - a.revenue);
+        const chart = Plot.plot({
+            marginLeft: 82, marginRight: 16, marginBottom: 36, height: 260,
+            x: { label: "Revenue (€)", grid: true },
+            y: { label: null },
+            color: { scheme: "tableau10" },
+            marks: [
+                Plot.barX(sorted, {
+                    y: "category", x: "revenue",
+                    fill: "category",
+                    tip: { format: { x: d => "€" + d.toLocaleString() } },
+                    sort: { y: "-x" }
+                }),
+                Plot.ruleX([0])
+            ]
+        });
+        el.appendChild(chart);
+    }
+
+    function renderScatter(months) {
+        const el = document.getElementById("chart-scatter");
+        el.innerHTML = "";
+        const chart = Plot.plot({
+            marginLeft: 48, marginRight: 16, marginBottom: 36, height: 260,
+            x: { label: "Active Users", grid: true },
+            y: { label: "Conversion (%)", grid: true },
+            color: { type: "sequential", scheme: "blues", label: "Month" },
+            marks: [
+                Plot.dot(months, {
+                    x: "users", y: "conv",
+                    fill: d => d.date.getMonth(),
+                    r: 7, fillOpacity: 0.85,
+                    tip: {
+                        format: {
+                            x: d => d.toLocaleString(),
+                            y: d => d + "%",
+                            fill: (d, i, data) => data[i].date.toLocaleString("en", { month: "short", year: "numeric" })
+                        }
+                    }
+                }),
+                Plot.linearRegressionY(months, { x: "users", y: "conv", stroke: "#6f42c1", strokeDasharray: "4" })
+            ]
+        });
+        el.appendChild(chart);
+    }
+
+    function renderTable() {
+        const rows = PRODUCTS.map(p => {
+            const badge = p.status === "up"
+                ? `<span class="badge text-bg-success"><i class="bi bi-arrow-up-short"></i>${p.growth}%</span>`
+                : `<span class="badge text-bg-danger"><i class="bi bi-arrow-down-short"></i>${Math.abs(p.growth)}%</span>`;
+            return `<tr>
+                <td>${p.name}</td>
+                <td class="text-end">€${p.revenue.toLocaleString()}</td>
+                <td class="text-end">${badge}</td>
+            </tr>`;
+        }).join("");
+
+        document.getElementById("table-products").innerHTML = `
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr><th>Product</th><th class="text-end">Revenue</th><th class="text-end">Growth</th></tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+    }
+
+    // ── Wiring ─────────────────────────────────────────────────────────────────
+
+    function render(period) {
+        const months = ALL_MONTHS.slice(-period);
+        updateKPIs(months);
+        renderRevenue(months);
+        renderScatter(months);
+    }
+
+    document.getElementById("period-filters").addEventListener("click", e => {
+        const btn = e.target.closest(".filter-btn");
+        if (!btn) return;
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        render(parseInt(btn.dataset.period, 10));
+    });
+
+    renderCategory();
+    renderTable();
+    render(12);
+    </script>
 </body>
 </html>
